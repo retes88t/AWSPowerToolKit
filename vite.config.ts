@@ -61,5 +61,6 @@ function sqsDevProxy(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/SQSExplorer/',
   plugins: [react(), tailwindcss(), sqsDevProxy()],
 })
