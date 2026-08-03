@@ -1,4 +1,5 @@
 import type { SqsMessageVM } from '../../types/message'
+import { formatMessageTimestamp } from '../../utils/messageTime'
 
 interface MessageTableProps {
   messages: SqsMessageVM[]
@@ -24,6 +25,7 @@ export function MessageTable({ messages, selectedMessageId, onSelect }: MessageT
       <table className="w-full border-collapse text-left text-sm">
         <thead className="sticky top-0 bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-900 dark:text-gray-400">
           <tr>
+            <th className="border-b border-gray-200 px-3 py-2 font-medium dark:border-gray-700">Fecha y hora</th>
             <th className="border-b border-gray-200 px-3 py-2 font-medium dark:border-gray-700">Body</th>
             <th className="border-b border-gray-200 px-3 py-2 font-medium dark:border-gray-700">Atributos</th>
             <th className="border-b border-gray-200 px-3 py-2 font-medium dark:border-gray-700">Recibos</th>
@@ -41,6 +43,9 @@ export function MessageTable({ messages, selectedMessageId, onSelect }: MessageT
                   : 'hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
+              <td className="whitespace-nowrap px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                {formatMessageTimestamp(m)}
+              </td>
               <td className="max-w-md truncate px-3 py-2 font-mono text-xs text-gray-800 dark:text-gray-200">
                 {truncate(m.body)}
               </td>

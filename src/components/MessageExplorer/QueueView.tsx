@@ -13,6 +13,7 @@ import {
   type ReceiveOptions,
 } from '../../aws/sqsService'
 import { filterMessages } from '../../utils/attributeFilter'
+import { getMessageTimestamp } from '../../utils/messageTime'
 import { Toolbar } from './Toolbar'
 import { FilterBar } from './FilterBar'
 import { MessageTable } from './MessageTable'
@@ -101,6 +102,8 @@ export function QueueView({ tab }: { tab: QueueTab }) {
   }
 
   const visibleMessages = filterMessages(tab.messages, tab.filters)
+    .slice()
+    .sort((a, b) => getMessageTimestamp(b) - getMessageTimestamp(a))
 
   return (
     <div className="flex min-h-0 flex-1">
