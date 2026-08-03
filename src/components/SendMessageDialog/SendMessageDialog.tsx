@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Wand2 } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import type { QueueSummary } from '../../types/queue'
 import type { SendMessageInput } from '../../aws/sqsService'
+import { formatJson } from '../../utils/json'
 
 interface AttributeRow {
   id: string
@@ -21,6 +22,8 @@ interface SendMessageDialogProps {
 
 export function SendMessageDialog({ queue, initial, onSend, onClose }: SendMessageDialogProps) {
   const [body, setBody] = useState(initial?.body ?? '')
+  const [bodyType, setBodyType] = useState<'text' | 'json'>('text')
+  const [bodyFormatError, setBodyFormatError] = useState<string | null>(null)
   const [attributes, setAttributes] = useState<AttributeRow[]>(
     (initial?.attributes ?? []).map((a) => ({ id: crypto.randomUUID(), ...a })),
   )
@@ -40,6 +43,15 @@ export function SendMessageDialog({ queue, initial, onSend, onClose }: SendMessa
 
   function removeAttribute(id: string) {
     setAttributes(attributes.filter((a) => a.id !== id))
+  }
+
+  function handleFormatBody() {
+    try {
+      setBody((current) => formatJson(current))
+      setBodyFormatError(null)
+    } catch {
+      setBodyFormatError('El body no es un JSON válido')
+    }
   }
 
   async function handleSend() {
@@ -64,15 +76,40 @@ export function SendMessageDialog({ queue, initial, onSend, onClose }: SendMessa
   return (
     <Modal title={`Enviar mensaje a ${queue.name}`} onClose={onClose} widthClassName="max-w-xl">
       <div className="space-y-3">
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">Body</span>
+        <div>
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Body</span>
+            <div className="flex items-center gap-1.5">
+              <select
+                value={bodyType}
+                onChange={(e) => {
+                  setBodyType(e.target.value as 'text' | 'json')
+                  setBodyFormatError(null)
+                }}
+                className="rounded-md border border-gray-300 px-1 py-0.5 text-xs dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+              >
+                <option value="text">Texto plano</option>
+                <option value="json">JSON</option>
+              </select>
+              {bodyType === 'json' && (
+                <Button variant="ghost" onClick={handleFormatBody} className="px-1.5 py-0.5 text-xs">
+                  <Wand2 size={12} />
+                  Formatear
+                </Button>
+              )}
+            </div>
+          </div>
           <textarea
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => {
+              setBody(e.target.value)
+              setBodyFormatError(null)
+            }}
             rows={6}
             className="w-full rounded-md border border-gray-300 px-2.5 py-1.5 font-mono text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
           />
-        </label>
+          {bodyFormatError && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bodyFormatError}</p>}
+        </div>
 
         <div>
           <div className="mb-1 flex items-center justify-between">
