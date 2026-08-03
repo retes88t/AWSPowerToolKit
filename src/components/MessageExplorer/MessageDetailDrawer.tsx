@@ -1,8 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { X, Trash2, Send, RotateCcw, Wand2, Copy, Check } from 'lucide-react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { X, Trash2, Send, RotateCcw, Copy, Check } from 'lucide-react'
 import { Button } from '../common/Button'
 import type { SqsMessageVM } from '../../types/message'
-import { formatJson } from '../../utils/json'
+import { formatJson, highlightJson } from '../../utils/json'
 
 interface MessageDetailDrawerProps {
   message: SqsMessageVM
@@ -14,26 +14,25 @@ interface MessageDetailDrawerProps {
 }
 
 export function MessageDetailDrawer({ message, onClose, onDelete, onRelease, onResend, isBusy }: MessageDetailDrawerProps) {
-  const [bodyType, setBodyType] = useState<'text' | 'json'>('text')
-  const [formattedBody, setFormattedBody] = useState<string | null>(null)
-  const [formatError, setFormatError] = useState<string | null>(null)
+  const [bodyType, setBodyType] = useState<'text' | 'json'>('json')
+  const [copyError, setCopyError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    setBodyType('text')
-    setFormattedBody(null)
-    setFormatError(null)
+    setBodyType('json')
+    setCopyError(null)
     setCopied(false)
   }, [message.messageId])
 
-  function handleFormatBody() {
+  const jsonBody = useMemo(() => {
     try {
-      setFormattedBody(formatJson(message.body))
-      setFormatError(null)
+      return { text: formatJson(message.body), valid: true }
     } catch {
-      setFormatError('El body no es un JSON válido')
+      return { text: message.body, valid: false }
     }
-  }
+  }, [message.body])
+
+  const displayedBody = bodyType === 'json' ? jsonBody.text : message.body
 
   async function handleCopyBody() {
     try {
@@ -41,11 +40,9 @@ export function MessageDetailDrawer({ message, onClose, onDelete, onRelease, onR
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
-      setFormatError('No se pudo copiar al portapapeles')
+      setCopyError('No se pudo copiar al portapapeles')
     }
   }
-
-  const displayedBody = bodyType === 'json' && formattedBody ? formattedBody : message.body
 
   return (
     <div className="flex w-96 shrink-0 flex-col border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
@@ -63,21 +60,12 @@ export function MessageDetailDrawer({ message, onClose, onDelete, onRelease, onR
             <div className="flex items-center gap-1.5">
               <select
                 value={bodyType}
-                onChange={(e) => {
-                  setBodyType(e.target.value as 'text' | 'json')
-                  setFormatError(null)
-                }}
+                onChange={(e) => setBodyType(e.target.value as 'text' | 'json')}
                 className="rounded-md border border-gray-300 px-1 py-0.5 text-xs normal-case dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
               >
                 <option value="text">Texto plano</option>
                 <option value="json">JSON</option>
               </select>
-              {bodyType === 'json' && (
-                <Button variant="ghost" onClick={handleFormatBody} className="px-1.5 py-0.5 text-xs normal-case">
-                  <Wand2 size={12} />
-                  Formatear
-                </Button>
-              )}
               <Button variant="ghost" onClick={handleCopyBody} className="px-1.5 py-0.5 text-xs normal-case">
                 {copied ? <Check size={12} /> : <Copy size={12} />}
                 {copied ? 'Copiado' : 'Copiar'}
@@ -85,10 +73,20 @@ export function MessageDetailDrawer({ message, onClose, onDelete, onRelease, onR
             </div>
           }
         >
-          <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-md bg-gray-100 p-2 text-xs dark:bg-gray-800 dark:text-gray-100">
-            {displayedBody}
-          </pre>
-          {formatError && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{formatError}</p>}
+          {bodyType === 'json' && jsonBody.valid ? (
+            <pre
+              className="max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-md bg-gray-100 p-2 text-xs dark:bg-gray-800"
+              dangerouslySetInnerHTML={{ __html: highlightJson(displayedBody) }}
+            />
+          ) : (
+            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-md bg-gray-100 p-2 text-xs dark:bg-gray-800 dark:text-gray-100">
+              {displayedBody}
+            </pre>
+          )}
+          {bodyType === 'json' && !jsonBody.valid && (
+            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">El body no es un JSON válido, mostrando texto plano</p>
+          )}
+          {copyError && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{copyError}</p>}
         </Section>
 
         <Section title="Atributos de mensaje (custom)">

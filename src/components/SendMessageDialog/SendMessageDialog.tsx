@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState, type UIEvent } from 'react'
 import { Plus, X, Wand2 } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import type { QueueSummary } from '../../types/queue'
 import type { SendMessageInput } from '../../aws/sqsService'
-import { formatJson } from '../../utils/json'
+import { formatJson, highlightJson } from '../../utils/json'
 
 interface AttributeRow {
   id: string
@@ -21,9 +21,24 @@ interface SendMessageDialogProps {
 }
 
 export function SendMessageDialog({ queue, initial, onSend, onClose }: SendMessageDialogProps) {
-  const [body, setBody] = useState(initial?.body ?? '')
-  const [bodyType, setBodyType] = useState<'text' | 'json'>('text')
+  const [body, setBody] = useState(() => {
+    if (!initial?.body) return initial?.body ?? ''
+    try {
+      return formatJson(initial.body)
+    } catch {
+      return initial.body
+    }
+  })
+  const [bodyType, setBodyType] = useState<'text' | 'json'>('json')
   const [bodyFormatError, setBodyFormatError] = useState<string | null>(null)
+  const bodyHighlightRef = useRef<HTMLPreElement>(null)
+
+  function handleBodyScroll(e: UIEvent<HTMLTextAreaElement>) {
+    if (bodyHighlightRef.current) {
+      bodyHighlightRef.current.scrollTop = e.currentTarget.scrollTop
+      bodyHighlightRef.current.scrollLeft = e.currentTarget.scrollLeft
+    }
+  }
   const [attributes, setAttributes] = useState<AttributeRow[]>(
     (initial?.attributes ?? []).map((a) => ({ id: crypto.randomUUID(), ...a })),
   )
@@ -99,15 +114,31 @@ export function SendMessageDialog({ queue, initial, onSend, onClose }: SendMessa
               )}
             </div>
           </div>
-          <textarea
-            value={body}
-            onChange={(e) => {
-              setBody(e.target.value)
-              setBodyFormatError(null)
-            }}
-            rows={6}
-            className="w-full rounded-md border border-gray-300 px-2.5 py-1.5 font-mono text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
-          />
+          <div className="relative">
+            {bodyType === 'json' && (
+              <pre
+                ref={bodyHighlightRef}
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 overflow-auto whitespace-pre-wrap break-all rounded-md bg-white px-2.5 py-1.5 font-mono text-sm dark:bg-gray-900"
+                dangerouslySetInnerHTML={{ __html: highlightJson(body) + '\n' }}
+              />
+            )}
+            <textarea
+              value={body}
+              onChange={(e) => {
+                setBody(e.target.value)
+                setBodyFormatError(null)
+              }}
+              onScroll={bodyType === 'json' ? handleBodyScroll : undefined}
+              rows={6}
+              spellCheck={false}
+              className={`relative w-full resize-y rounded-md border border-gray-300 px-2.5 py-1.5 font-mono text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 ${
+                bodyType === 'json'
+                  ? 'bg-transparent text-transparent caret-gray-900 dark:caret-gray-100'
+                  : 'bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100'
+              }`}
+            />
+          </div>
           {bodyFormatError && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{bodyFormatError}</p>}
         </div>
 
