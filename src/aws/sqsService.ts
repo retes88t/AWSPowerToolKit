@@ -10,6 +10,8 @@ import {
   type MessageAttributeValue,
 } from '@aws-sdk/client-sqs'
 import { createSqsClient } from './sqsClient'
+import { isDesktopBridgeAvailable } from '../bridge/desktopBridge'
+import * as sqsBridge from '../bridge/sqsBridge'
 import type { AwsConnection } from '../types/connection'
 import type { QueueSummary } from '../types/queue'
 import type { SqsMessageVM } from '../types/message'
@@ -36,6 +38,10 @@ function queueNameFromUrl(url: string): string {
 }
 
 export async function listQueues(connection: AwsConnection, prefix?: string): Promise<QueueSummary[]> {
+  if (isDesktopBridgeAvailable()) {
+    return sqsBridge.listQueues(connection, prefix)
+  }
+
   const client = getClient(connection)
   const urls: string[] = []
   let nextToken: string | undefined
@@ -67,6 +73,10 @@ const QUEUE_ATTRIBUTE_NAMES = [
 ] as const
 
 export async function getQueueSummary(connection: AwsConnection, queue: QueueSummary): Promise<QueueSummary> {
+  if (isDesktopBridgeAvailable()) {
+    return sqsBridge.getQueueSummary(connection, queue)
+  }
+
   const client = getClient(connection)
   const res = await client.send(
     new GetQueueAttributesCommand({ QueueUrl: queue.url, AttributeNames: [...QUEUE_ATTRIBUTE_NAMES] }),
@@ -107,6 +117,10 @@ export async function receiveMessages(
   queue: QueueSummary,
   options: ReceiveOptions,
 ): Promise<SqsMessageVM[]> {
+  if (isDesktopBridgeAvailable()) {
+    return sqsBridge.receiveMessages(connection, queue, options)
+  }
+
   const client = getClient(connection)
   const collected: SqsMessageVM[] = []
   const seen = new Set<string>()
@@ -163,11 +177,19 @@ export async function receiveMessages(
 }
 
 export async function deleteMessage(connection: AwsConnection, queue: QueueSummary, receiptHandle: string) {
+  if (isDesktopBridgeAvailable()) {
+    return sqsBridge.deleteMessage(connection, queue, receiptHandle)
+  }
+
   const client = getClient(connection)
   await client.send(new DeleteMessageCommand({ QueueUrl: queue.url, ReceiptHandle: receiptHandle }))
 }
 
 export async function releaseMessage(connection: AwsConnection, queue: QueueSummary, receiptHandle: string) {
+  if (isDesktopBridgeAvailable()) {
+    return sqsBridge.releaseMessage(connection, queue, receiptHandle)
+  }
+
   const client = getClient(connection)
   await client.send(
     new ChangeMessageVisibilityCommand({ QueueUrl: queue.url, ReceiptHandle: receiptHandle, VisibilityTimeout: 0 }),
@@ -175,6 +197,10 @@ export async function releaseMessage(connection: AwsConnection, queue: QueueSumm
 }
 
 export async function purgeQueue(connection: AwsConnection, queue: QueueSummary) {
+  if (isDesktopBridgeAvailable()) {
+    return sqsBridge.purgeQueue(connection, queue)
+  }
+
   const client = getClient(connection)
   await client.send(new PurgeQueueCommand({ QueueUrl: queue.url }))
 }
@@ -188,6 +214,10 @@ export interface SendMessageInput {
 }
 
 export async function sendMessage(connection: AwsConnection, queue: QueueSummary, input: SendMessageInput) {
+  if (isDesktopBridgeAvailable()) {
+    return sqsBridge.sendMessage(connection, queue, input)
+  }
+
   const client = getClient(connection)
   const messageAttributes: Record<string, MessageAttributeValue> = {}
   for (const attr of input.attributes) {

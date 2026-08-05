@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- Raíz del repo (dos niveles arriba de este .csproj: desktop/AWSPowerToolKit.Desktop -> desktop -> raíz),
+         usada por el target BuildAndCopyDesktopFrontend de abajo para ubicar package.json y dist-desktop. -->
+    <RepoRootDir>$(MSBuildProjectDirectory)\..\..\</RepoRootDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4129.50" />
+    <PackageReference Include="AWSSDK.SQS" Version="3.7.400.31" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.416.1" />
+    <PackageReference Include="MongoDB.Driver" Version="2.30.0" />
+  </ItemGroup>
+
+  <!--
+    T15 — Build/publish end-to-end del ejecutable single-file.
+    Antes de `dotnet publish`, compila la SPA (`npm run build:desktop`, ver T3) contra la raíz
+    del repo y copia el resultado (`dist-desktop/`) junto al `.exe` publicado, para que
+    `Form1.InitializeWebViewAsync` (que busca `dist-desktop` relativo a `AppContext.BaseDirectory`)
+    la encuentre sin pasos manuales. No corre en `dotnet build`/`dotnet run` normales (donde
+    `dist-desktop` ya puede existir de una corrida previa de `npm run build:desktop`, o se muestra
+    el placeholder embebido si todavía no existe).
+  -->
+  <Target Name="BuildAndCopyDesktopFrontend" BeforeTargets="Publish">
+    <Message Importance="high" Text="[AWSPowerToolKit] Compilando la SPA para el empaquetado embebido (npm run build:desktop)..." />
+    <Exec Command="npm run build:desktop" WorkingDirectory="$(RepoRootDir)" />
+
+    <ItemGroup>
+      <DistDesktopFiles Include="$(RepoRootDir)dist-desktop\**\*.*" />
+    </ItemGroup>
+
+    <Message Importance="high" Text="[AWSPowerToolKit] Copiando dist-desktop a $(PublishDir)dist-desktop\..." />
+    <Copy
+      SourceFiles="@(DistDesktopFiles)"
+      DestinationFiles="@(DistDesktopFiles->'$(PublishDir)dist-desktop\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

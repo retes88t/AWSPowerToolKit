@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:desktop": "tsc -b && vite build --base ./ --outDir dist-desktop",
+    "package:desktop": "dotnet publish desktop/AWSPowerToolKit.Desktop -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true",
     "lint": "oxlint",
     "preview": "vite preview"
   },
