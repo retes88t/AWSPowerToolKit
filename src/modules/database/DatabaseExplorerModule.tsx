@@ -7,6 +7,7 @@ import { MongoConnectionManager } from '../../components/DatabaseExplorer/MongoC
 import { QueryEditor } from '../../components/DatabaseExplorer/QueryEditor'
 import { ResultsGrid } from '../../components/DatabaseExplorer/ResultsGrid'
 import { Button } from '../../components/common/Button'
+import { isDesktopBridgeAvailable } from '../../bridge/desktopBridge'
 
 export function DatabaseExplorerModule() {
   const connections = useMongoConnectionsStore((s) => s.connections)
@@ -29,7 +30,7 @@ export function DatabaseExplorerModule() {
         )}
       </header>
 
-      {!import.meta.env.DEV && (
+      {!import.meta.env.DEV && !isDesktopBridgeAvailable() && (
         <div className="flex shrink-0 items-center gap-2 border-b border-amber-300 bg-amber-50 px-4 py-1.5 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
           <AlertTriangle size={14} className="shrink-0" />
           Este módulo depende de un proxy de solo-desarrollo para conectarse a Mongo/DocumentDB: en este sitio

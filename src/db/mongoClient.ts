@@ -7,6 +7,11 @@
 // Like the SQS dev proxy, this only exists under `npm run dev` — in a production
 // build (GitHub Pages) there is no backend, so these calls will fail with a
 // network error. Callers are expected to handle that gracefully.
+//
+// When running embedded in the .NET WebView2 host (`isDesktopBridgeAvailable()`, T2),
+// `src/db/mongoService.ts` bypasses this file entirely and delegates to
+// `src/bridge/mongoBridge.ts` instead (T13) — the functions here are only ever called
+// from `mongoService.ts` when the bridge isn't available.
 
 const MONGO_PROXY_BASE = '/mongo-proxy'
 

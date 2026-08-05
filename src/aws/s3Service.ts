@@ -10,6 +10,8 @@ import {
 } from '@aws-sdk/client-s3'
 import { getClient } from './s3Client'
 import type { S3Connection } from '../types/s3Connection'
+import { isDesktopBridgeAvailable } from '../bridge/desktopBridge'
+import * as s3Bridge from '../bridge/s3Bridge'
 
 export interface BucketSummary {
   name: string
@@ -54,6 +56,10 @@ export interface ObjectContentResult {
 const MAX_PREVIEW_BYTES = 1_000_000
 
 export async function listBuckets(connection: S3Connection): Promise<BucketSummary[]> {
+  if (isDesktopBridgeAvailable()) {
+    return s3Bridge.listBuckets(connection)
+  }
+
   const client = getClient(connection)
   const res = await client.send(new ListBucketsCommand({}))
   return (res.Buckets ?? []).map((b) => ({
@@ -68,6 +74,10 @@ export async function listObjects(
   prefix?: string,
   continuationToken?: string,
 ): Promise<ListObjectsResult> {
+  if (isDesktopBridgeAvailable()) {
+    return s3Bridge.listObjects(connection, bucket, prefix, continuationToken)
+  }
+
   const client = getClient(connection)
   const res = await client.send(
     new ListObjectsV2Command({
@@ -99,6 +109,10 @@ export async function getObjectMetadata(
   bucket: string,
   key: string,
 ): Promise<ObjectMetadata> {
+  if (isDesktopBridgeAvailable()) {
+    return s3Bridge.getObjectMetadata(connection, bucket, key)
+  }
+
   const client = getClient(connection)
   const res = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
 
@@ -119,6 +133,10 @@ export async function getObjectContent(
   bucket: string,
   key: string,
 ): Promise<ObjectContentResult> {
+  if (isDesktopBridgeAvailable()) {
+    return s3Bridge.getObjectContent(connection, bucket, key)
+  }
+
   const client = getClient(connection)
   const res = await client.send(
     new GetObjectCommand({ Bucket: bucket, Key: key, Range: `bytes=0-${MAX_PREVIEW_BYTES - 1}` }),
@@ -135,6 +153,10 @@ export async function getObjectContent(
 }
 
 export async function deleteObject(connection: S3Connection, bucket: string, key: string): Promise<void> {
+  if (isDesktopBridgeAvailable()) {
+    return s3Bridge.deleteObject(connection, bucket, key)
+  }
+
   const client = getClient(connection)
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
 }
@@ -146,6 +168,10 @@ export async function renameObject(
   oldKey: string,
   newKey: string,
 ): Promise<void> {
+  if (isDesktopBridgeAvailable()) {
+    return s3Bridge.renameObject(connection, bucket, oldKey, newKey)
+  }
+
   const client = getClient(connection)
   await client.send(
     new CopyObjectCommand({ Bucket: bucket, CopySource: `${bucket}/${encodeURIComponent(oldKey)}`, Key: newKey }),
@@ -160,6 +186,10 @@ export async function setStorageClass(
   key: string,
   storageClass: StorageClass,
 ): Promise<void> {
+  if (isDesktopBridgeAvailable()) {
+    return s3Bridge.setStorageClass(connection, bucket, key, storageClass)
+  }
+
   const client = getClient(connection)
   await client.send(
     new CopyObjectCommand({
@@ -179,6 +209,10 @@ export async function restoreObject(
   key: string,
   days = 7,
 ): Promise<void> {
+  if (isDesktopBridgeAvailable()) {
+    return s3Bridge.restoreObject(connection, bucket, key, days)
+  }
+
   const client = getClient(connection)
   await client.send(
     new RestoreObjectCommand({

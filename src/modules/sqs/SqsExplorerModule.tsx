@@ -5,6 +5,7 @@ import { QueueSidebar } from '../../components/QueueSidebar/QueueSidebar'
 import { MessageExplorer } from '../../components/MessageExplorer/MessageExplorer'
 import { ConnectionManager } from '../../components/ConnectionManager/ConnectionManager'
 import { Button } from '../../components/common/Button'
+import { isDesktopBridgeAvailable } from '../../bridge/desktopBridge'
 
 export function SqsExplorerModule() {
   const connections = useConnectionsStore((s) => s.connections)
@@ -22,7 +23,7 @@ export function SqsExplorerModule() {
         )}
       </header>
 
-      {!import.meta.env.DEV && (
+      {!import.meta.env.DEV && !isDesktopBridgeAvailable() && (
         <div className="flex shrink-0 items-center gap-2 border-b border-amber-300 bg-amber-50 px-4 py-1.5 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
           <AlertTriangle size={14} className="shrink-0" />
           Amazon SQS no soporta CORS: en este sitio publicado la UI carga, pero las llamadas a AWS van a fallar. Para
