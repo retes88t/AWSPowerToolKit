@@ -21,6 +21,15 @@
     <PackageReference Include="MongoDB.Driver" Version="2.30.0" />
   </ItemGroup>
 
+  <!-- Vincula dist-desktop (generado en la raíz del repo por npm run build:desktop, fuera del cono
+       de este proyecto y con .gitignore) como recurso externo visible en el Solution Explorer,
+       sin copiarlo dentro de la carpeta del proyecto. Son ítems None (no participan del build en sí;
+       el copiado real al output publicado lo sigue haciendo el target BuildAndCopyDesktopFrontend). -->
+  <ItemGroup>
+    <DistDesktopLinkedFiles Include="$(RepoRootDir)dist-desktop\**\*.*" />
+    <None Include="@(DistDesktopLinkedFiles)" Link="dist-desktop\%(RecursiveDir)%(Filename)%(Extension)" Visible="true" />
+  </ItemGroup>
+
   <!--
     T15 — Build/publish end-to-end del ejecutable single-file.
     Antes de `dotnet publish`, compila la SPA (`npm run build:desktop`, ver T3) contra la raíz
@@ -39,10 +48,24 @@
     </ItemGroup>
 
     <Message Importance="high" Text="[AWSPowerToolKit] Copiando dist-desktop a $(PublishDir)dist-desktop\..." />
-    <Copy
-      SourceFiles="@(DistDesktopFiles)"
-      DestinationFiles="@(DistDesktopFiles->'$(PublishDir)dist-desktop\%(RecursiveDir)%(Filename)%(Extension)')"
-      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(DistDesktopFiles)" DestinationFiles="@(DistDesktopFiles->'$(PublishDir)dist-desktop\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+
+  <!--
+    Copia dist-desktop a bin\<Config>\net9.0-windows\ en cada build desde Visual Studio (F5,
+    Ctrl+Shift+B), tanto en Debug como en Release, para que Form1.InitializeWebViewAsync la
+    encuentre sin necesidad de publicar. A diferencia de BuildAndCopyDesktopFrontend (Publish),
+    este target NO corre `npm run build:desktop` en cada build (sería muy lento) — usa el
+    dist-desktop que ya exista en la raíz del repo de una corrida manual previa. Si todavía no
+    existe, la condición lo salta sin romper el build y Form1 muestra el placeholder embebido.
+  -->
+  <Target Name="CopyDesktopFrontendOnBuild" AfterTargets="Build" Condition="Exists('$(RepoRootDir)dist-desktop')">
+    <ItemGroup>
+      <DistDesktopBuildFiles Include="$(RepoRootDir)dist-desktop\**\*.*" />
+    </ItemGroup>
+
+    <Message Importance="high" Text="[AWSPowerToolKit] Copiando dist-desktop a $(OutDir)dist-desktop\..." />
+    <Copy SourceFiles="@(DistDesktopBuildFiles)" DestinationFiles="@(DistDesktopBuildFiles->'$(OutDir)dist-desktop\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>
